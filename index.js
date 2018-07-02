@@ -206,10 +206,9 @@ ZongJi.prototype._fetchTableInfo = function(tableMapEvent, next) {
     if (rows.length === 0) {
       self.emit('error', new Error(
         'Insufficient permissions to access: ' +
-        tableMapEvent.schemaName + '.' + tableMapEvent.tableName));
-      // This is a fatal error, no additional binlog events will be
-      // processed since next() will never be called
-      return;
+        tableMapEvent.schemaName + '.' + tableMapEvent.tableName) +
+        ', or this table have been dropped.');
+      return next();
     }
 
     self.tableMap[tableMapEvent.tableId] = {
