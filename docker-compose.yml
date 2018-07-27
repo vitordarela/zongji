@@ -9,7 +9,7 @@ services:
         aliases:
           - mysql55
     environment:
-      MYSQL_ROOT_PASSWORD: numtel
+      MYSQL_ROOT_PASSWORD: root
 
   mysql56:
     image: mysql:5.6
