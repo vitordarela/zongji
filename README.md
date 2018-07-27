@@ -1,4 +1,4 @@
-# ZongJi [![Build Status](https://travis-ci.org/nevill/zongji.svg?branch=master)](https://travis-ci.org/nevill/zongji)
+# ZongJi [![Build Status](https://travis-ci.org/rodrigogs/zongji.svg?branch=master)](https://travis-ci.org/rodrigogs/zongji)
 A MySQL binlog listener running on Node.js.
 
 ZongJi (踪迹) is pronounced as `zōng jì` in Chinese.
