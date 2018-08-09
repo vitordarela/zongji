@@ -1,5 +1,5 @@
 #!/bin/bash
-MYSQL_HOSTS="mysql55 mysql56 mysql57"
+MYSQL_HOSTS="mysql55 mysql56 mysql57 mysql80"
 
 for hostname in ${MYSQL_HOSTS}; do
   echo $hostname
