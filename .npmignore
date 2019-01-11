@@ -9,3 +9,5 @@ npm-install-stamp
 
 *.sublime-project
 *.sublime-workspace
+.idea
+*.iml
