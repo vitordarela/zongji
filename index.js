@@ -184,7 +184,7 @@ ZongJi.prototype._executeCtrlCallbacks = function() {
   }
 };
 
-var tableInfoQueryTemplate = `
+var tableInfoQueryTemplateWithSchema = `
 SELECT
   COLUMN_NAME, COLLATION_NAME, CHARACTER_SET_NAME,
   COLUMN_COMMENT, COLUMN_TYPE
@@ -195,31 +195,47 @@ WHERE
 ORDER BY ORDINAL_POSITION;
 `;
 
+var tableInfoQueryTemplateWithoutSchema = `
+SELECT
+  COLUMN_NAME, COLLATION_NAME, CHARACTER_SET_NAME,
+  COLUMN_COMMENT, COLUMN_TYPE
+FROM
+  information_schema.columns
+WHERE
+  table_name='%s'
+ORDER BY ORDINAL_POSITION;
+`;
+
 ZongJi.prototype._fetchTableInfo = function(tableMapEvent, next) {
   var self = this;
-  var sql = util.format(tableInfoQueryTemplate,
-    tableMapEvent.schemaName, tableMapEvent.tableName);
+  
+  var sql;
+  if (tableMapEvent.schemaName && tableMapEvent.schemaName !== '*') {
+    sql = util.format(tableInfoQueryTemplateWithSchema,
+      tableMapEvent.schemaName, tableMapEvent.tableName);
+  } else {
+    sql = util.format(tableInfoQueryTemplateWithoutSchema,
+      tableMapEvent.tableName);
+  }
 
   this.ctrlConnection.query(sql, function(err, rows) {
     if (err) {
-      // Errors should be emitted
+      // Erros devem ser emitidos
       self.emit('error', err);
-      // This is a fatal error, no additional binlog events will be
-      // processed since next() will never be called
       return;
     }
 
     if (rows.length === 0) {
       self.emit('error', new Error(
-        'Insufficient permissions to access: ' +
-        tableMapEvent.schemaName + '.' + tableMapEvent.tableName) +
-        ', or this table have been dropped.');
+        'Permissões insuficientes para acessar: ' +
+        (tableMapEvent.schemaName ? (tableMapEvent.schemaName + '.') : '') + tableMapEvent.tableName +
+        ', ou esta tabela foi removida.'));
       return next();
     }
 
     self.tableMap[tableMapEvent.tableId] = {
       columnSchemas: rows,
-      parentSchema: tableMapEvent.schemaName,
+      parentSchema: tableMapEvent.schemaName || null, // Deixe null se não houver schema
       tableName: tableMapEvent.tableName
     };
 
@@ -302,18 +318,30 @@ ZongJi.prototype._skipEvent = function(eventName) {
 ZongJi.prototype._skipSchema = function(database, table) {
   var include = this.options.includeSchema;
   var exclude = this.options.excludeSchema;
+
+  // Verifica se includeSchema tem um schema "*" e ignora o schema
+  var includeAllSchemas = include && '*' in include && (include['*'] === true || (include['*'] instanceof Array && include['*'].indexOf(table) !== -1));
+
   return !(
-   (include === undefined ||
-    (database !== undefined && (database in include) &&
-     (include[database] === true ||
-      (include[database] instanceof Array &&
-       include[database].indexOf(table) !== -1)))) &&
-   (exclude === undefined ||
-      (database !== undefined &&
-       (!(database in exclude) ||
-        (exclude[database] !== true &&
-          (exclude[database] instanceof Array &&
-           exclude[database].indexOf(table) === -1))))));
+    (
+      // Se o include tiver "*" ou o database específico
+      include === undefined ||
+      includeAllSchemas || // Se estamos incluindo todas as tabelas do schema "*"
+      (database !== undefined && (database in include) &&
+        (include[database] === true ||
+         (include[database] instanceof Array &&
+          include[database].indexOf(table) !== -1)))
+    ) &&
+    (
+      exclude === undefined ||
+      (
+        database !== undefined &&
+        (!(database in exclude) ||
+         (exclude[database] !== true &&
+           (exclude[database] instanceof Array &&
+            exclude[database].indexOf(table) === -1))))
+    )
+  );
 };
 
 ZongJi.prototype._emitError = function(error) {
