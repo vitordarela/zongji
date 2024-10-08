@@ -256,7 +256,7 @@ ZongJi.prototype.start = function(options) {
     self.connection._protocol._enqueue(new self.binlog(function(error, event) {
       if (error) return self.emit('error', error);
       // Do not emit events that have been filtered out
-      if (event === undefined || event._filtered === true) return;
+      if (event === undefined || event._filtered === true || event.row.length == 0) return;
 
       switch (event.getTypeName()) {
         case 'TableMap':
